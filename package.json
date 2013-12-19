@@ -1,38 +1,28 @@
 {
-  "name":              "cat-source-map",
-  "main":              "./lib/cat-source-map",
-  "bin":
-    {
-      "cat-source-map":    "./lib/cat-source-map.js"
-    },
-  "description":       "cat files, handling sourcemaps",
-  "also-see":          "https://github.com/mozilla/source-map",
-  "author":            "pmuellr",
-  "version":           "0.1.0",
-  "tags":              [ "sourcemap"],
-  "licenses":
-    [
-      {
-        "type":        "Apache License"
-      }
-    ],
-  "dependencies":
-    {
-      "source-map":       "0.1.x",
-      "nopt":             "2.1.x",
-      "underscore":       "1.5.x"
-    },
-  "devDependencies":
-    {
-      "coffee-script":    "1.6.x",
-      "grunt":            "0.4.x",
-      "shelljs":          "0.2.6"
-    },
-  "homepage":          "https://github.com/pmuellr/cat-source-map",
-  "bugs":              "https://github.com/pmuellr/cat-source-map/issues",
-  "repository": {
-    "type":            "git",
-    "url":             "git://github.com/pmuellr/cat-source-map"
-  }
+  "name":                     "cat-source-map",
+  "main":                     "./lib/cat-source-map",
+  "bin": {                    "cat-source-map": "./lib/cat-source-map.js" },
+  "description":              "concatenate JavaScript files, handling source map bits",
+  "also-see":                 "https://github.com/mozilla/source-map",
+  "author":                   "pmuellr",
+  "version":                  "0.1.0",
+  "licenses": [ {             "type": "Apache License" } ],
+  "dependencies": {
+      "source-map":           "0.1.x",
+      "nopt":                 "2.1.x",
+      "underscore":           "1.5.x"
+  },
+  "devDependencies": {
+      "browserify":           "3.5.x",
+      "coffee-script":        "1.6.x",
+      "expect.js":            "0.2.x",
+      "grunt":                "0.4.x",
+      "grunt-contrib-watch":  "0.5.x",
+      "mocha":                "1.15.x",
+      "shelljs":              "0.2.6"
+  },
+  "homepage":                 "https://github.com/pmuellr/cat-source-map",
+  "bugs":                     "https://github.com/pmuellr/cat-source-map/issues",
+  "repository": {             "type": "git", "url": "git://github.com/pmuellr/cat-source-map" }
 }
 

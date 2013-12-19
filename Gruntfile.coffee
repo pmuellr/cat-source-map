@@ -4,211 +4,138 @@ fs            = require "fs"
 path          = require "path"
 
 require "shelljs/global"
+
 _ = require "underscore"
 
-process.setMaxListeners(0)
+__basename = path.basename __filename
+
+mkdir "-p", "tmp"
 
 #-------------------------------------------------------------------------------
 
-module.exports = (grunt) ->
+grunt = null
 
-    grunt.initConfig
+Config =
 
-        watch: [
-            "lib-src"
+    watch:
+        Gruntfile:
+            files: __basename
+            tasks: "gruntfile-changed"
+        source:
+            files: [ 
+                "lib-src/**/*"
+                "test/*.coffee" 
+            ]
+            tasks: "build-n-test"
+            options:
+                atBegin:    true
+                interrupt:  true
+
+    tester:
+        cmd: "node_modules/.bin/mocha"
+        files: [
+            "test/*.coffee"
         ]
+        opts: 
+            reporter:  "dot"
+            ui:        "bdd"
+            compilers: "coffee:coffee-script"
 
-        clean: [
-            "lib"
-            "node_modules"
-            "tmp"
-        ]
+    clean: [
+        "lib"
+        "node_modules"
+        "tmp"
+    ]
 
-    #----------------------------------
+#-------------------------------------------------------------------------------
+
+module.exports = (grunt_) ->
+
+    grunt = grunt_
+
+    grunt.initConfig Config
+
+    grunt.loadNpmTasks "grunt-contrib-watch"
 
     grunt.registerTask "default", ["help"]
 
-    grunt.registerTask "help", "Display available commands", ->
-        exec "grunt --help", @async()
+    grunt.registerTask "help", "print help", ->
+        exec "grunt --help"
 
-    grunt.registerTask "build", "Build the server", ->
-        runBuild grunt, @
+    grunt.registerTask "build", "run the build", ->
+        build @
 
-    grunt.registerTask "test", "Run the tests", ->
-        runTests grunt, @
-
-    grunt.registerTask "watch", "When src files change, re-build and re-test", ->
-        @async()
-        runWatch grunt
+    grunt.registerTask "test", "run the tests", ->
+        test @
 
     grunt.registerTask "clean", "Remove generated files", ->
-        runClean grunt, @
+        clean @
+
+    grunt.registerTask "----------------", "remaining tasks are internal", ->
+
+    grunt.registerTask "build-n-test", "run a build, then the tests", ->
+        grunt.task.run ["build", "test"]
+
+    grunt.registerTask "gruntfile-changed", "exit when the Gruntfile changes", ->
+        grunt.fail.fatal "Gruntfile changed, maybe you wanna exit and restart?"
 
 #-------------------------------------------------------------------------------
+build = (task) ->
+    done = task.async()
 
-runBuild = (grunt, task) ->
-    makeWriteable grunt, task
-    runBuildMeat  grunt, task
-    makeReadOnly  grunt, task
+    log "building code in lib"
 
-#-------------------------------------------------------------------------------
-
-runBuildMeat = (grunt, task) ->
-
-    timeStart = Date.now()
-
-    mkdir "-p",  "lib"
-    rm    "-rf", "lib/*"
+    cleanDir "lib"
 
     coffeec "--output lib lib-src/*.coffee"
 
-    timeElapsed = Date.now() - timeStart
-    log grunt, "build time: #{timeElapsed/1000} sec"
-
-    return
+    done()
 
 #-------------------------------------------------------------------------------
 
-runTests = (grunt) ->
-    log grunt, "woulda run tests here"
+test = (task) ->
+    done = task.async()
 
-    return
+    tester = Config.tester
 
-#-------------------------------------------------------------------------------
-runWatch = (grunt, fileName=null, watchers=[]) ->
-    return if watchers.tripped
+    cmd = tester.cmd 
+    for opt, val of tester.opts
+        cmd = "#{cmd} --#{opt} #{val}"
 
-    if fileName
-        log grunt, "----------------------------------------------------"
-        log grunt, "file changed: #{fileName}" 
+    cmd = "#{cmd} #{tester.files.join ' '}"
 
-    if watchers.length
-        for watcher in watchers
-            fs.unwatchFile watcher
+    exec cmd
+    done()
 
-        watchers.splice 0, watchers.length
-        watchers.tripped = true
-
-    runBuild grunt
-    runTests grunt
-
-    watchFiles = []
-    watchDirs  = grunt.config "watch"
-
-    for dir in watchDirs
-        files = ls "-RA", dir
-        files = _.map files, (file) -> path.join dir, file
-
-        watchFiles = watchFiles.concat files
-
-    watchers = []
-    watchers.tripped = false
-
-    options = 
-        persistent: true
-        interval:   500
-
-    for watchFile in watchFiles
-        watchHandler = getWatchHandler grunt, watchFile, watchers
-        fs.watchFile watchFile, options, watchHandler
-
-        watchers.push watchFile
-
-    fs.watchFile __filename, options, ->
-        log grunt, "#{path.basename __filename} changed; exiting"
-        process.exit 0
-        return
-
-    log grunt, "watching #{1 + watchFiles.length} files for changes"
-
-    return
 
 #-------------------------------------------------------------------------------
-getTime =  ->
-    date = new Date()
-    hh   = align.right date.getHours(),   2, 0
-    mm   = align.right date.getMinutes(), 2, 0
-
-    return "#{hh}:#{mm}"
-
-#-------------------------------------------------------------------------------
-log =  (grunt, message) ->
-    grunt.log.writeln "#{getTime()} - #{message}"
-
-#-------------------------------------------------------------------------------
-getWatchHandler = (grunt, watchFile, watchers) ->
-    return (curr, prev) ->
-        return if curr.mtime == prev.mtime
-
-        runWatch grunt, watchFile, watchers
-
-        return
-
-#-------------------------------------------------------------------------------
-
-runClean = (grunt) ->
-    dirs = grunt.config "clean"
-
-    makeWritable()
-
-    for dir in dirs
+clean = ->
+    for dir in Config.clean
         if test "-d", dir
             rm "-rf", dir
 
     return
 
 #-------------------------------------------------------------------------------
-align = (s, direction, length, pad=" ") ->
-    s   = "#{s}"
-    pad = "#{pad}"
-
-    direction = direction.toUpperCase()[0]
-
-    if direction is "L"
-        doPad = (s) -> s + pad
-    else if direction is "R"
-        doPad = (s) -> pad + s
-    else
-        throw Error "invalid direction argument for align()"
-
-    while s.length < length
-        s = doPad s
-
-    return s
-
-align.right = (s, length, pad=" ") -> align s, "right", length, pad
-align.left  = (s, length, pad=" ") -> align s, "left",  length, pad
-
-
-#-------------------------------------------------------------------------------
-
-coffee = (command) ->
-    exec "node_modules/.bin/coffee #{command}"
-    return
-
-#-------------------------------------------------------------------------------
-
-coffeec = (command) ->
-    exec "node_modules/.bin/coffee --bare --compile #{command}"
-    return
-
-#-------------------------------------------------------------------------------
-
-makeWriteable = ->
-    mkdir "-p", "www", "lib"
-    chmod "-R", "+w", "www"
-    chmod "-R", "+w", "lib"
+cleanDir = (dirs...) ->
+    for dir in dirs
+        mkdir "-p",  dir
+        rm "-rf", "#{dir}/*"
 
     return
 
 #-------------------------------------------------------------------------------
+coffee  = (parms) ->  exec "node_modules/.bin/coffee #{parms}"
+coffeec = (parms) ->  coffee "--bare --compile #{parms}"
 
-makeReadOnly = ->
-    mkdir "-p", "www", "lib"
-    chmod "-R", "-w", "www"
-    chmod "-R", "-w", "lib"
+#-------------------------------------------------------------------------------
+log = (message) ->
+    grunt.log.write "#{message}\n"
 
-    return
+#-------------------------------------------------------------------------------
+logError = (message) ->
+    grunt.fail.fatal "#{message}\n"
+
 
 #-------------------------------------------------------------------------------
 # Copyright 2013 Patrick Mueller

@@ -1,4 +1,4 @@
 cat-source-map
 ================================================================================
 
-Concatenate files, handling sourcemap bits
+concatenate JavaScript files, handling source map bits

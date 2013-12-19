@@ -1,43 +1,77 @@
 # Licensed under the Apache License. See footer for details.
 
-fs            = require "fs"
-path          = require "path"
+fs    = require "fs"
+path  = require "path"
+util  = require "util"
 
-_ = require "underscore"
+_         = require "underscore"
+sourceMap = require "source-map"
 
-PROGRAM = path.basename(__filename).split(".")[0]
+pkg = require "../package.json"
+
+PROGRAM = pkg.name
+VERSION = pkg.version
+
+csm = exports
 
 #-------------------------------------------------------------------------------
-main = (outBaseName, srcFiles...) ->
+csm.version = VERSION
 
-    if !outBaseName? or _.isEmpty srcFiles
-        help()
+#-------------------------------------------------------------------------------
+DefaultLogger = (message) -> console.log "#{PROGRAM}: #{message}"
 
-    srcFiles = checkFiles srcFiles
-    ext      = srcFiles.ext
+#-------------------------------------------------------------------------------
+csm.process = (oFile, iFiles, options) ->
+    options.log = DefaultLogger unless _.isFunction options.log
 
-    outName = "#{outBaseName}.#{ext}"
-    mapName = "#{outName}.map.json"
-
-    log "woulda generated #{outName} and #{mapName}"
+    if options.verbose 
+        options.logv = options.log 
+    else
+        options.logv = ->
 
     try 
-        srcFiles = for srcFile in srcFiles 
-            buildSrcFile srcFile
+        process oFile, iFiles, options
     catch err
-        logError "exception processing source files: #{err}"
+        options.log "error: #{err}"
+        return e
 
-    mapObject = 
-        version:        3
-        builtOn:        new Date()
-        builtBy:        PROGRAM
-        file:           outName
-        sources:        []
-        sourcesContent: []
-        names:          []
-        mappings:       ""
+    return
 
-    for srcFile in srcFiles 
+#-------------------------------------------------------------------------------
+process = (oFile, iFiles, options) ->
+    
+    throw Error "oFile parameter should be a string"  unless _.isString oFile
+    throw Error "iFiles parameter should be an array" unless _.isArray iFiles
+
+    iFiles = for iFile in iFiles
+        "#{iFile}"
+
+    iFileNames = for iFile in iFiles
+        "`#{iFile}`"
+
+    options.logv "oFile:   `#{oFile}`"
+    options.logv "iFiles:  #{iFileNames.join ' '}"
+    options.logv "options: #{util.inspect options}"
+
+    for iFile in iFiles
+        unless fs.existsSync iFile
+            throw Error "input file '#{iFile}' not found"
+
+    sFiles = for iFile in iFiles
+        getSourceFile iFile
+
+    mFile = "#{oFile}.map.json"
+
+    outSourceMap = sourceMap.SourceMapGenerator
+        file: mFile
+
+    for sFile in sFiles
+        console.log "woulda done something with a sourceFile"
+
+    "#{outSourceMap}".to mFile
+    log "woulda generated #{outName} and #{mapName}"
+
+    for sFile in sFiles 
         log "processing #{srcFile.name}:"
 
         srcFile.map.sourcesContent ?= []
@@ -66,16 +100,41 @@ main = (outBaseName, srcFiles...) ->
     try 
         fs.writeFileSync outName, mapObject.sourcesContent.join "\n"
     catch err
-        logError "writing to file #{outName}: #{err}"
+        throw "error writing file '#{oFile}`: #{err}"
 
     try        
-        fs.writeFileSync mapName, JSON.stringify mapObject, null, 4
+        fs.writeFileSync mFile, JSON.stringify mapObject, null, 4
     catch err
-        logError "writing to file #{mapName}: #{err}"
+        throw "error writing file '#{mFile}`: #{err}"
 
-    log "generated files #{outName} and #{mapName}"
+    options.vlog "generated files #{oFile} and #{mFile}"
 
     return
+
+#-------------------------------------------------------------------------------
+getSourceFile = (fileName) ->
+    srcFile = 
+        fileName: fileName
+
+    srcFile.content = fs.readFileSync fileName, "utf8"
+
+    srcMap = getSourceMap srcFile
+
+
+
+
+
+
+
+
+
+#-------------------------------------------------------------------------------
+getSourceMap = (srcFile) ->
+
+    
+
+
+
 
 #-------------------------------------------------------------------------------
 getSourceContent = (srcFile, srcName) ->
@@ -91,62 +150,67 @@ getSourceContent = (srcFile, srcName) ->
     return fs.readFileSync fileName, "utf8"
 
 #-------------------------------------------------------------------------------
-buildSrcFile = (srcFileName) ->
-    srcFile = 
-        name:    srcFileName
-        content: fs.readFileSync srcFileName, "utf8"
-
-    getSourceMappingURL srcFile
-
-    return srcFile
-
+# for a given file name and content, return an object with the following
+# properties:
+# 
+# * map     - a normalized souce map that includes `sourcesContent`
+# * content - the original content with annotations deactivated in place
 #-------------------------------------------------------------------------------
 # //@ sourceMappingURL=
-getSourceMappingURL = (srcFile) ->
-    {name, content} = srcFile
+getSource = (name, content) ->
+    content = fs.readFileSync name, "utf8"
+
+    result =
+        map:     null
+        content: content
 
     dir = path.dirname name
 
-    patternS = "^//(#|@) sourceMappingURL=(.*)$"
+    pattern = "^//(#|@) sourceMappingURL=(.*)$"
     
-    patternG = new RegExp patternS, "m"
-    patternS = new RegExp patternS, "gm"
+    patternSingle = new RegExp pattern, "m"
+    patternMulti  = new RegExp pattern, "gm"
 
-    match = content.match patternS
-    return if not match 
+    # get the last annotation in the file
+    match = content.match patternMulti
+    return result if not match 
 
-    last = _.last match
+    last  = _.last match
+    match = last.match patternMultiingle
+    url   = match[2]
 
-    match = last.match patternG
-    return if not match
-
-    url = match[2]
-
+    # if it's a data url, parse it
     match = url.match /data:.*?;base64,(.*)/
-
     if match
         data = match[1]
         data = new Buffer(data, "base64").toString("utf8")
-        data = JSON.parse data
+        result.map = JSON.parse data
 
-        srcFile.map = data
-
+    # if it's not a data url, read it
     else
         fullUrl = path.resolve dir, url
 
         if !fs.existsSync fullUrl
-            log "map file '#{url}' for '#{name}' not found; ignored"
-            return
+            log "map file '#{url}' for '#{name}' not found; ignoring map"
+            return result
 
         data = fs.readFileSync fullUrl, "utf8"
         data = JSON.parse data
-        srcFile.map = data
+        result.map = data
 
-    # comment out old annotations
-    srcFile.content = content.replace  patternS, "//XXX sourceMappingURL annotation removed"
+    # add sourcesContent if not there
 
-    return
 
+    # deactivate out old annotations
+    result.content = content.replace patternMulti, "//XXX sourceMappingURL annotation removed"
+
+    return result
+
+#-------------------------------------------------------------------------------
+# returns an array of relevant files from the input array of file names
+#
+# adds the "ext" property to the array which indicates the extension of
+# the file to generate
 #-------------------------------------------------------------------------------
 checkFiles = (files) ->
     result = []
@@ -188,34 +252,6 @@ checkFiles = (files) ->
         return
 
     return result
-
-#-------------------------------------------------------------------------------
-log = (message) ->
-    console.log "#{PROGRAM}: #{message}"
-    return
-
-#-------------------------------------------------------------------------------
-logError = (message) ->
-    console.log "#{PROGRAM}: error: #{message}"
-    process.exit 1
-    return
-
-#-------------------------------------------------------------------------------
-help = ->
-    console.log """
-        usage: #{PROGRAM} outFile srcFile1 srcFile2 ...
-
-        concatenate source files, taking into account sourcemaps
-
-        Output files ${outFile}.js and ${outFile}.js.map.json will
-        be generated by concatenating the source files into the .js file,
-        and recalculating the sourcemaps into the .js.map.json file.
-    """
-
-    process.exit 0
-
-#-------------------------------------------------------------------------------
-main.apply null, (process.argv.slice 2) if require.main is module
 
 #-------------------------------------------------------------------------------
 # Copyright 2013 Patrick Mueller
