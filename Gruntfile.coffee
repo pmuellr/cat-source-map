@@ -22,21 +22,23 @@ Config =
             files: __basename
             tasks: "gruntfile-changed"
         source:
-            files: [ 
+            files: [
                 "lib-src/**/*"
-                "test/*.coffee" 
+                "test/*.coffee"
             ]
             tasks: "build-n-test"
             options:
                 atBegin:    true
                 interrupt:  true
+                event:      "changed"
 
     tester:
-        cmd: "node_modules/.bin/mocha"
+        cmd: "../node_modules/.bin/mocha"
+        dir: "test"
         files: [
-            "test/*.coffee"
+            "*.coffee"
         ]
-        opts: 
+        opts:
             reporter:  "dot"
             ui:        "bdd"
             compilers: "coffee:coffee-script"
@@ -53,6 +55,8 @@ module.exports = (grunt_) ->
 
     grunt = grunt_
 
+    Config["internal-watch"] = Config.watch
+
     grunt.initConfig Config
 
     grunt.loadNpmTasks "grunt-contrib-watch"
@@ -61,6 +65,11 @@ module.exports = (grunt_) ->
 
     grunt.registerTask "help", "print help", ->
         exec "grunt --help"
+
+    grunt.renameTask "watch", "internal-watch"
+
+    grunt.registerTask "watch", "watch for source changes, then build-n-test",  ->
+        grunt.task.run ["internal-watch"]
 
     grunt.registerTask "build", "run the build", ->
         build @
@@ -98,15 +107,22 @@ test = (task) ->
 
     tester = Config.tester
 
-    cmd = tester.cmd 
+    cmd = tester.cmd
     for opt, val of tester.opts
         cmd = "#{cmd} --#{opt} #{val}"
 
     cmd = "#{cmd} #{tester.files.join ' '}"
 
-    exec cmd
-    done()
+    origDir = pwd()
+    if tester.dir?
+        cd tester.dir
 
+    try
+        exec cmd
+    finally
+        cd origDir
+
+    done()
 
 #-------------------------------------------------------------------------------
 clean = ->
@@ -139,13 +155,13 @@ logError = (message) ->
 
 #-------------------------------------------------------------------------------
 # Copyright 2013 Patrick Mueller
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
