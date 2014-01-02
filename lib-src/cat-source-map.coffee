@@ -21,7 +21,7 @@ csm.version = VERSION
 DefaultLogger = (message) -> console.log "#{PROGRAM}: #{message}"
 
 #-------------------------------------------------------------------------------
-csm.process = (oFile, iFiles, options) ->
+csm.processFiles = (oFile, iFiles, options) ->
     options.log = DefaultLogger unless _.isFunction options.log
 
     if options.verbose
@@ -30,7 +30,7 @@ csm.process = (oFile, iFiles, options) ->
         options.logv = ->
 
     try
-        process oFile, iFiles, options
+        processFiles oFile, iFiles, options
     catch err
         options.log "error: #{err}"
         options.log "stack:\n#{err.stack}"
@@ -39,7 +39,7 @@ csm.process = (oFile, iFiles, options) ->
     return
 
 #-------------------------------------------------------------------------------
-process = (oFile, iFiles, options) ->
+processFiles = (oFile, iFiles, options) ->
 
     throw Error "oFile parameter should be a string"  unless _.isString oFile
     throw Error "iFiles parameter should be an array" unless _.isArray iFiles
@@ -128,7 +128,7 @@ getSourceMapConsumer = (srcFile, options) ->
     # if it's not a data url, read it
     else
         dir     = path.dirname srcFile.fileName
-        fullUrl = path.resolve dir, url
+        fullUrl = path.relative dir, url
 
         if !fs.existsSync fullUrl
             options.log "map file '#{url}' for '#{name}' not found; ignoring map"
@@ -141,16 +141,20 @@ getSourceMapConsumer = (srcFile, options) ->
         data.sourcesContent = []
         basePath = path.dirname fullUrl
         if data.sourceRoot and data.sourceRoot isnt ""
-            basePath = path.resolve basePath, data.sourceRoot
+            basePath = path.relative basePath, data.sourceRoot
 
         for source in data.sources
-            sourceFileName = path.resolve basePath, source
+            sourceFileName = path.relative basePath, source
             if !fs.existsSync sourceFileName
                 options.log "unable to find source file '#{sourceFileName}'; ignoring map"
                 return getIdentitySourceMapConsumer srcFile, options
 
             sourceFileContent = fs.readFileSync sourceFileName, "utf8"
             data.sourcesContent.push sourceFileContent
+
+    for i in [0...data.sources.length]
+        if data.sources[i][0] is "/"
+            data.sources[i] = path.relative process.cwd(), data.sources[i]
 
     return new sourceMap.SourceMapConsumer data
 

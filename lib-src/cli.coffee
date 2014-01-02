@@ -39,7 +39,7 @@ exports.main = ->
     oFile  = args.pop()
     iFiles = args
 
-    err = csm.process oFile, iFiles, options
+    err = csm.processFiles oFile, iFiles, options
 
     return 1 if err?
     return 0
