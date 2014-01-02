@@ -1,0 +1,14 @@
+{
+    "version": 3,
+    "file": "sample_01_02_c.js",
+    "sources": [
+        "sample_01.coffee",
+        "sample_02.coffee"
+    ],
+    "names": [],
+    "mappings": ";AAAA;;GAAY,MAAZ;CACY,EAAR,IAAO,EAAP;CADQ;;AAGZ,CAHA,QAGA;;;;;A;ACHA;;GAAY,MAAZ;CACY,EAAR,IAAO,EAAP;CADQ;;AAGZ,CAHA,QAGA",
+    "sourcesContent": [
+        "sample_01 = ->\n    console.log \"->sample_01\"\n\nsample_01()",
+        "sample_02 = ->\n    console.log \"->sample_02\"\n\nsample_02()"
+    ]
+}

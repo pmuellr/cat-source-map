@@ -78,7 +78,7 @@ process = (oFile, iFiles, options) ->
 
     code = """
         #{gen.code}
-        //# sourceMappingURL=#{mapFile}
+        //# sourceMappingURL=#{path.basename mapFile}
     """
 
     fs.writeFileSync oFile,   code
@@ -122,29 +122,53 @@ getSourceMapConsumer = (srcFile, options) ->
         data = match[1]
         data = new Buffer(data, "base64").toString("utf8")
         data = JSON.parse data
-        return new sourceMap.SourceMapConsumer data
+
+        fullUrl = srcFile.fileName
 
     # if it's not a data url, read it
     else
+        dir     = path.dirname srcFile.fileName
         fullUrl = path.resolve dir, url
 
         if !fs.existsSync fullUrl
             options.log "map file '#{url}' for '#{name}' not found; ignoring map"
-            return getIdentitySourceMap srcFile
+            return getIdentitySourceMapConsumer srcFile, options
 
         data = fs.readFileSync fullUrl, "utf8"
         data = JSON.parse data
-        return new sourceMap.SourceMapConsumer data
+
+    unless data.sourcesContent
+        data.sourcesContent = []
+        basePath = path.dirname fullUrl
+        if data.sourceRoot and data.sourceRoot isnt ""
+            basePath = path.resolve basePath, data.sourceRoot
+
+        for source in data.sources
+            sourceFileName = path.resolve basePath, source
+            if !fs.existsSync sourceFileName
+                options.log "unable to find source file '#{sourceFileName}'; ignoring map"
+                return getIdentitySourceMapConsumer srcFile, options
+
+            sourceFileContent = fs.readFileSync sourceFileName, "utf8"
+            data.sourcesContent.push sourceFileContent
+
+    return new sourceMap.SourceMapConsumer data
 
 #-------------------------------------------------------------------------------
 getIdentitySourceMapConsumer = (srcFile, options) ->
     smg = new sourceMap.SourceMapGenerator
         file: srcFile.fileName
 
-    smg.addMapping
-      source:       srcFile.fileName
-      original:     { line: 1, column: 0 }
-      generated:    { line: 1, column: 0 }
+    lines = srcFile.content.split("\n").length
+
+    line = 0
+    while line < lines
+        line++
+
+        smg.addMapping
+            source:       srcFile.fileName
+            original:     { line: line, column: 0 }
+            generated:    { line: line, column: 0 }
 
     return new sourceMap.SourceMapConsumer smg.toString()
 

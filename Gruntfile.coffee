@@ -25,6 +25,7 @@ Config =
             files: [
                 "lib-src/**/*"
                 "test/*.coffee"
+                "test/*.html"
             ]
             tasks: "build-n-test"
             options:
@@ -36,10 +37,10 @@ Config =
         cmd: "../node_modules/.bin/mocha"
         dir: "test"
         files: [
-            "*.coffee"
+            "test-*.coffee"
         ]
         opts:
-            reporter:  "dot"
+            reporter:  "spec"
             ui:        "bdd"
             compilers: "coffee:coffee-script"
 

@@ -8,18 +8,40 @@ expect = require "expect.js"
 utils = require "./utils"
 csm   = require "../lib/cat-source-map"
 
+testName = (path.basename __filename).split(".")[0]
+testDir  = path.join "tmp", testName
+
 #-------------------------------------------------------------------------------
 
-describe "CoffeeScript support", ->
+describe "JavaScript support", ->
 
-    beforeEach ->
-        utils.cleanDir "tmp"
+    before ->
+        utils.cleanDir testDir
+        cd testDir
+        cp "../../*sample*", "."
 
-    it "should handle a single CoffeeScript file", (done) ->
-        iFile = path.join __dirname, "sample_01.coffee"
-        utils.coffeec "--output tmp #{iFile}"
+    after ->
+        cd "../.."
 
-        utils.cat_source_map "-v tmp/sample_01.js tmp/sample_01_c.js"
+    it "should handle one JavaScript file", (done) ->
+        utils.coffeec "sample_01.coffee"
+
+        utils.cat_source_map "sample_01.js sample_01_c.js"
+
+        cmp = utils.compareMaps testName, "sample_01_c"
+        expect(cmp).to.be true
+
+        done()
+
+    it "should handle two JavaScript files", (done) ->
+        utils.coffeec "sample_01.coffee"
+        utils.coffeec "sample_02.coffee"
+
+        utils.cat_source_map "sample_01.js sample_02.js sample_01_02_c.js"
+
+        cmp = utils.compareMaps testName, "sample_01_02_c"
+        expect(cmp).to.be true
+
         done()
 
 #-------------------------------------------------------------------------------

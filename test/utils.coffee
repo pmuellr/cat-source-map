@@ -1,5 +1,6 @@
 # Licensed under the Apache License. See footer for details.
 
+fs   = require "fs"
 path = require "path"
 
 require "shelljs/global"
@@ -32,7 +33,17 @@ exports.cat_source_map = (cmd) ->
 #-------------------------------------------------------------------------------
 exports.cleanDir = (dir) ->
     mkdir "-p",  dir
-    rm    "-rf", dir
+    rm    "-rf", path.join(dir, "*")
+
+#-------------------------------------------------------------------------------
+exports.compareMaps = (testName, baseFile) ->
+    actualFile   = "#{baseFile}.js.map.json"
+    expectedFile = path.join "..", "..", "expected", testName, actualFile
+
+    actualContents   = fs.readFileSync actualFile,   "utf8"
+    expectedContents = fs.readFileSync expectedFile, "utf8"
+
+    return actualContents == expectedContents
 
 #-------------------------------------------------------------------------------
 # Copyright 2013 Patrick Mueller
