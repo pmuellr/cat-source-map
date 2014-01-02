@@ -16,15 +16,23 @@ node_modules_bin = (cmd) ->
 
 #-------------------------------------------------------------------------------
 exports.coffee = (cmd) ->
+    cmd = normalizeCommand cmd
     exec "node #{node_modules_bin "coffee"} #{cmd}"
 
 #-------------------------------------------------------------------------------
 exports.coffeec = (cmd) ->
+    cmd = normalizeCommand cmd
     exports.coffee "--compile --bare #{cmd}"
 
 #-------------------------------------------------------------------------------
 exports.browserify = (cmd) ->
+    cmd = normalizeCommand cmd
     exec "node #{node_modules_bin "browserify"} #{cmd}"
+
+#-------------------------------------------------------------------------------
+exports.uglifyjs = (cmd) ->
+    cmd = normalizeCommand cmd
+    exec "node #{node_modules_bin "uglifyjs"} #{cmd}"
 
 #-------------------------------------------------------------------------------
 exports.cat_source_map = (cmd) ->
@@ -44,6 +52,11 @@ exports.compareMaps = (testName, baseFile) ->
     expectedContents = fs.readFileSync expectedFile, "utf8"
 
     return actualContents == expectedContents
+
+#-------------------------------------------------------------------------------
+normalizeCommand = (cmd) ->
+    cmd.replace(/\s+/g," ").trim()
+
 
 #-------------------------------------------------------------------------------
 # Copyright 2013 Patrick Mueller

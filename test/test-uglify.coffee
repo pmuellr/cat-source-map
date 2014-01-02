@@ -13,7 +13,7 @@ testDir  = path.join "tmp", testName
 
 #-------------------------------------------------------------------------------
 
-describe "Browserify support", ->
+describe "Uglify support", ->
 
     before ->
         utils.cleanDir testDir
@@ -23,14 +23,24 @@ describe "Browserify support", ->
     after ->
         cd "../.."
 
-    it "should handle browserifying two JavaScript files", (done) ->
+    it "should handle uglifying a browserified thing", (done) ->
         utils.coffeec "sample_01.coffee"
         utils.coffeec "sample_02.coffee"
 
         utils.browserify """
             sample_01.js sample_02.js --debug --outfile sample_01_02_b.js
             """
-        utils.cat_source_map "--fixFileNames sample_01_02_b.js sample_01_02_c.js"
+
+        utils.cat_source_map "sample_01_02_b.js sample_01_02_c1.js"
+
+        utils.uglifyjs """
+            sample_01_02_c1.js
+            --in-source-map sample_01_02_c1.js.map.json
+            --output        sample_01_02_c2.js
+            --source-map    sample_01_02_c2.js.map.json
+            """
+
+        utils.cat_source_map "--fixFileNames sample_01_02_c2.js sample_01_02_c.js"
 
         cmp = utils.compareMaps testName, "sample_01_02_c"
         expect(cmp).to.be true

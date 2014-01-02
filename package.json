@@ -8,18 +8,19 @@
   "version":                  "0.1.0",
   "licenses": [ {             "type": "Apache License" } ],
   "dependencies": {
-      "source-map":           "0.1.x",
       "nopt":                 "2.1.x",
+      "source-map":           "0.1.x",
       "underscore":           "1.5.x"
   },
   "devDependencies": {
-      "browserify":           "3.5.x",
+      "browserify":           "3.18.x",
       "coffee-script":        "1.6.x",
       "expect.js":            "0.2.x",
       "grunt":                "0.4.x",
       "grunt-contrib-watch":  "0.5.x",
-      "mocha":                "1.15.x",
-      "shelljs":              "0.2.6"
+      "mocha":                "1.16.x",
+      "shelljs":              "0.2.6",
+      "uglify-js":            "2.4.x"
   },
   "homepage":                 "https://github.com/pmuellr/cat-source-map",
   "bugs":                     "https://github.com/pmuellr/cat-source-map/issues",

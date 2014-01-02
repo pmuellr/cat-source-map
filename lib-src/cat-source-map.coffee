@@ -114,7 +114,8 @@ getSourceMapConsumer = (srcFile, options) ->
     url   = match[2]
 
     # deactivate out old annotations
-    srcFile.content = srcFile.content.replace patternMulti, "// sourceMappingURL annotation removed"
+    replacement = "// sourceMappingURL annotation removed by #{PROGRAM}"
+    srcFile.content = srcFile.content.replace patternMulti, replacement
 
     # if it's a data url, parse it
     match = url.match /data:.*?;base64,(.*)/
@@ -146,15 +147,18 @@ getSourceMapConsumer = (srcFile, options) ->
         for source in data.sources
             sourceFileName = path.relative basePath, source
             if !fs.existsSync sourceFileName
-                options.log "unable to find source file '#{sourceFileName}'; ignoring map"
-                return getIdentitySourceMapConsumer srcFile, options
+                options.log "unable to find source file '#{sourceFileName}'; setting dummy source"
+                data.sourcesContent.push "// source not found: #{sourceFileName}"
+                continue
 
             sourceFileContent = fs.readFileSync sourceFileName, "utf8"
             data.sourcesContent.push sourceFileContent
 
-    for i in [0...data.sources.length]
-        if data.sources[i][0] is "/"
-            data.sources[i] = path.relative process.cwd(), data.sources[i]
+    if options.fixFileNames
+        for i in [0...data.sources.length]
+            if data.sources[i][0] is path.sep
+                data.sources[i] = path.relative process.cwd(), data.sources[i]
+                data.sources[i] = removeDots data.sources[i]
 
     return new sourceMap.SourceMapConsumer data
 
@@ -175,6 +179,15 @@ getIdentitySourceMapConsumer = (srcFile, options) ->
             generated:    { line: line, column: 0 }
 
     return new sourceMap.SourceMapConsumer smg.toString()
+
+#-------------------------------------------------------------------------------
+removeDots = (fileName) ->
+    parts = fileName.split path.sep
+
+    while parts[0] in [".", ".."]
+        parts.shift()
+
+    return parts.join path.sep
 
 #-------------------------------------------------------------------------------
 # Copyright 2013 Patrick Mueller
