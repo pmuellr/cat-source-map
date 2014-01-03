@@ -1,7 +1,7 @@
 {
   "name":                     "cat-source-map",
   "main":                     "./lib/cat-source-map",
-  "bin": {                    "cat-source-map": "./lib/cat-source-map.js" },
+  "bin": {                    "cat-source-map": "./lib/cli.js" },
   "description":              "concatenate JavaScript files, handling source map bits",
   "also-see":                 "https://github.com/mozilla/source-map",
   "author":                   "pmuellr",
