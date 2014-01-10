@@ -22,6 +22,19 @@ source maps into the .map.json outFile.
 The --fixFileNames option will try to make the file names in the output
 `sources` property relative and will remove leading . and .. path entries.
 
+
+
+installation
+================================================================================
+
+    npm install cat-source-map
+
+You probably just want to add this to each package that uses it, as an
+entry in `devDependencies`.  You can then invoke it from a build script as
+`node_modules/.bin/cat-source-map`.
+
+
+
 hacking
 ================================================================================
 
