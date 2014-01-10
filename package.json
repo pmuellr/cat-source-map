@@ -5,7 +5,7 @@
   "description":              "concatenate JavaScript files, handling source map bits",
   "also-see":                 "https://github.com/mozilla/source-map",
   "author":                   "pmuellr",
-  "version":                  "0.1.1",
+  "version":                  "0.1.2",
   "licenses": [ {             "type": "Apache License" } ],
   "dependencies": {
       "nopt":                 "2.1.x",
