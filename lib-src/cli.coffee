@@ -31,7 +31,7 @@ exports.main = ->
 
     args = parsed.argv.remain
 
-    return help() if args.length is 0
+    return help() if args.length < 2
     return help() if args[0] in ["?", "help"]
     return help() if parsed.help
 
