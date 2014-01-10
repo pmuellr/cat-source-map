@@ -44,8 +44,7 @@ exports.main = ->
 
     err = csm.processFiles oFile, iFiles, options
 
-    return 1 if err?
-    return 0
+    process.exit 1 if err?
 
 #-------------------------------------------------------------------------------
 help = ->
