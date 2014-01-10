@@ -129,23 +129,26 @@ getSourceMapConsumer = (srcFile, options) ->
     # if it's not a data url, read it
     else
         dir     = path.dirname srcFile.fileName
-        fullUrl = path.relative dir, url
+        fullUrl = path.join dir, url
 
         if !fs.existsSync fullUrl
-            options.log "map file '#{url}' for '#{name}' not found; ignoring map"
+            options.log "map file '#{url}' (#{fullUrl}) for '#{srcFile.fileName}' not found; ignoring map"
             return getIdentitySourceMapConsumer srcFile, options
 
         data = fs.readFileSync fullUrl, "utf8"
         data = JSON.parse data
 
+    delete data.sourceRoot
+
     unless data.sourcesContent
         data.sourcesContent = []
+
         basePath = path.dirname fullUrl
         if data.sourceRoot and data.sourceRoot isnt ""
             basePath = path.relative basePath, data.sourceRoot
 
         for source in data.sources
-            sourceFileName = path.relative basePath, source
+            sourceFileName = source
             if !fs.existsSync sourceFileName
                 options.log "unable to find source file '#{sourceFileName}'; setting dummy source"
                 data.sourcesContent.push "// source not found: #{sourceFileName}"
