@@ -69,6 +69,7 @@ processFiles = (oFile, iFiles, options) ->
         options.logv "processing `#{srcFile.fileName}`"
 
         sourceNode = sourceMap.SourceNode.fromStringWithSourceMap srcFile.content, srcFile.smc
+        sourceNode.add ";"
         outSourceNode.add sourceNode
         outSourceNode.setSourceContent srcFile.fileName, srcFile.content
 
